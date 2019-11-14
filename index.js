@@ -3,108 +3,106 @@ const fs = require('fs-extra');
 
 (async function main() {
 
-    const url = 'http://www.alternativateatral.com/teatros.asp?pais=1&provincia=4'
-    const browser = await puppeteer.launch({ headless: false });
+    const url = 'http://inteatro.gob.ar/InstitucionesCulturales?search=&type=&province='
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
     var result = [];
-    var button, selector, selectorZona;
 
-    await page.goto(url);
+    await page.goto(url, { waitUntil: 'load', timeout: 0 });
 
-    await page.waitForSelector('#provincias > li');
-    var links = await page.$$eval('#provincias > li a', nodes => nodes.map(n => n.href));
+    await page.waitForSelector('.container .institucion-detalle');
+    var instituciones = await page.$$('.container .institucion-detalle');
 
-    for (let link of links) {
-        selector = `a[href="${link.replace('http://www.alternativateatral.com/', '')}"]`;
-        await page.waitForSelector('#provincias > li > a');
-        await page.evaluate((selector) => {
-            var linkCity = document.querySelector(selector);
-            linkCity.click()
-            return true;
-        }, selector);
+    let img = '';
+    let tipo = '';
+    let nombre = '';
+    let direccion = '';
+    let region = '';
+    let provincia = '';
+    let ciudad = '';
+    let phone = '';
+    let mail = '';
+    let web = '';
 
-        await page.waitForSelector('#zonas > li');
-        var zonas = await page.$$('#zonas > li');
-        var linksZonas = await page.$$eval('#zonas > li a', nodes => nodes.map(n => n.href));
+    for (let institucion of instituciones) {
 
-        for (let linkZona of linksZonas) {
-
-            selectorZona = `a[href="${linkZona.replace('http://www.alternativateatral.com/', '')}"]`;
-            await page.waitForSelector('#provincias > li > a');
-            await page.evaluate((selectorZona) => {
-                var linkZonaClick = document.querySelector(selectorZona);
-                linkZonaClick.click()
-                return true;
-            }, selectorZona);
-
-            await page.waitForSelector('.celdadatos');
-            var tds = await page.$$eval('.celdadatos', nodes => nodes.map(n => n.innerText))
-
-            var pageNumber = 1;
-            while (true) {
-
-                console.log('Página nro: ', pageNumber);
-                try {
-
-                    for (let index = 0; index < tds.length; index++) {
-
-                        if (index % 2 != 0) {
-
-                            try {
-                                const text = tds[index].split(`\n`)
-                                const name = text[0]
-                                const street = text[1].replace('Dirección: ', '')
-                                const location = text[2].split(' - ')
-                                const city = location[0]
-                                const province = location[1]
-                                const country = location[2]
-                                const tel = text[3].replace('Teléfono: ', '')
-                                const web = text[4]
-
-                                result.push({
-                                    name,
-                                    street,
-                                    city,
-                                    province,
-                                    country,
-                                    tel,
-                                    web,
-                                    img: ''
-                                });
-
-                            } catch (error) {
-                                console.log(error);
-                            }
-
-                        }
-
-                    }
-
-                    pageNumber = pageNumber + 1;
-
-                    try {
-                        await page.waitForSelector('.paginador');
-                        button = await page.$('.actual + li > a');
-                    } catch (error) {
-                        console.log('No hay mas páginas');
-                        button = false
-                    }
-
-                    if (button) {
-                        await button.click();
-                        await page.waitForSelector('.celdadatos');
-                        tds = await page.$$eval('.celdadatos', nodes => nodes.map(n => n.innerText))
-                    } else {
-                        break;
-                    }
-
-                } catch (error) {
-                    console.log(error);
-                }
-
-            }
+        try {
+            img = await institucion.$eval('.img-sala', nodes => nodes.src);
+        } catch {
+            img = '';
         }
+        try {
+            tipo = await institucion.$eval('.info-institucion .tipo', (n => n.innerText));
+        } catch {
+            tipo = '';
+        }
+        try {
+            nombre = await institucion.$eval('.info-institucion .nombre', (n => n.innerText));
+        } catch {
+            nombre = '';
+        }
+        try {
+            direccion = await institucion.$eval('.direction', (n => n.innerText));
+        } catch {
+            direccion = '';
+        }
+        try {
+            region = await institucion.$eval('.region', (n => n.innerText));
+        } catch {
+            region = '';
+        }
+        try {
+            provincia = await institucion.$eval('.provincia', (n => n.innerText));
+        } catch {
+            provincia = '';
+        }
+        try {
+            ciudad = await institucion.$eval('.ciudad', (n => n.innerText));
+        } catch {
+            ciudad = '';
+        }
+        try {
+            phone = await institucion.$eval('.phone', (n => n.innerText));
+        } catch {
+            phone = '';
+        }
+        try {
+            mail = await institucion.$eval('.email', (n => n.innerText));
+        } catch {
+            mail = '';
+        }
+        try {
+            web = await institucion.$eval('.web', (n => n.innerText));
+        } catch {
+            web = '';
+        }
+
+        result.push({
+            'img': img,
+            'tipo': tipo,
+            'nombre': nombre,
+            'direccion': direccion,
+            'region': region,
+            'provincia': provincia,
+            'ciudad': ciudad,
+            'phone': phone,
+            'mail': mail,
+            'web': web
+        });
+
+        console.log({
+            'img': img,
+            'tipo': tipo,
+            'nombre': nombre,
+            'direccion': direccion,
+            'region': region,
+            'provincia': provincia,
+            'ciudad': ciudad,
+            'phone': phone,
+            'mail': mail,
+            'web': web
+        });
 
     }
 
